@@ -1,0 +1,6 @@
+streamlit==1.40.0
+numpy
+pandas
+yfinance
+matplotlib
+mplfinance
