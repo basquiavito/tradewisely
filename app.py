@@ -110,29 +110,36 @@ if st.sidebar.button("Fetch Data"):
         stock_data["Cumulative Return (%)"] = (stock_data["Cumulative Return"] - 1) * 100  # Convert to percentage
         stock_data["Day of the Week"] = pd.to_datetime(stock_data["Date"]).dt.day_name()  # Extract day of the week
 
-        # Initialize myPrice on the second day as the mean of the first two log returns
+                # Initialize myPrice on the second day as the mean of the first two log returns
         initial_myPrice = stock_data["Log Return"].iloc[:2].mean()  # Mean of Day 1 and Day 2
         myPrice = [None, initial_myPrice]  # First day is None since no price is defined on Day 1
 
         # Update myPrice for subsequent days
         for i in range(2, len(stock_data)):  # Start from Day 3
             today_log_return = stock_data["Log Return"].iloc[i]
+
+            # Calculate the mean of all log returns up to the current day
+            current_mean = stock_data["Log Return"].iloc[: i + 1].mean()
+
+            # Compare today's log return to the new mean
             previous_myPrice = myPrice[-1]
 
-            if today_log_return > previous_myPrice:
+            if today_log_return > current_mean:
                 # Add the excess
-                new_myPrice = previous_myPrice + (today_log_return - previous_myPrice)
+                new_myPrice = previous_myPrice + (today_log_return - current_mean)
             else:
                 # Subtract the deficiency
-                new_myPrice = previous_myPrice - (previous_myPrice - today_log_return)
-            
+                new_myPrice = previous_myPrice - (current_mean - today_log_return)
+
             # Append the new myPrice
             myPrice.append(new_myPrice)
 
         # Add the myPrice column to the DataFrame
         stock_data["myPrice"] = myPrice
-# Step 4: Add the myPrice_x1000 column next to myPrice
+
+        # Optionally, add the scaled myPrice_x1000 column
         stock_data["myPrice_x1000"] = stock_data["myPrice"] * 1000
+
         table_data = stock_data[["Date", "Day of the Week", "Log Return (%)", "Cumulative Return (%)", "myPrice","myPrice_x1000"]]
 
         # Display the table below the plot
