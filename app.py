@@ -1,28 +1,60 @@
 import streamlit as st
+import yfinance as yf
+import pandas as pd
 
 # Set Streamlit page configuration
 st.set_page_config(
-    page_title="TradeWisely",
+    page_title="TradeWisely: Intraday Stock Data",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# Navigation
-st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ["Home", "Day Trading"])
+# App Title
+st.title("TradeWisely: Intraday Stock Data")
 
-# Home Page
-if page == "Home":
-    st.title("Welcome to TradeWisely")
-    st.write("Analyze stock data and make informed decisions.")
-    st.write("Use the sidebar to navigate to different tools, like Day Trading.")
+# Sidebar for stock input and date range
+st.sidebar.header("Intraday Stock Input")
+ticker = st.sidebar.text_input("Enter Stock Ticker:", value="AVGO").upper()
+interval = st.sidebar.selectbox(
+    "Select Interval:",
+    options=["1m", "5m", "15m", "30m", "1h"],
+    index=2  # Default to 15m
+)
+start_date = st.sidebar.date_input("Start Date:", value=pd.Timestamp.today() - pd.Timedelta(days=1))
+end_date = st.sidebar.date_input("End Date:", value=pd.Timestamp.today())
 
-# Day Trading Page
-elif page == "Day Trading":
-    st.experimental_set_query_params(page="daytrading")  # Optional for bookmarking
-    # Import the logic from daytrading.py dynamically
+# Validate date range
+if start_date > end_date:
+    st.sidebar.error("Error: Start Date must be before or equal to End Date.")
+
+# Fetch intraday data function
+@st.cache_data
+def fetch_intraday_data(ticker, interval, start_date, end_date):
     try:
-        from pages import daytrading
-        daytrading.run()  # Run the function in daytrading.py
-    except ImportError:
-        st.error("Error: 'daytrading.py' is missing or not in the 'pages/' directory.")
+        # Fetch data
+        intraday_data = yf.download(
+            ticker, start=start_date, end=end_date, interval=interval
+        )
+        if intraday_data.empty:
+            st.error(f"No intraday data found for ticker '{ticker}' in the given date range.")
+            return pd.DataFrame()
+        intraday_data.reset_index(inplace=True)  # Ensure 'Datetime' is a column
+        return intraday_data
+    except Exception as e:
+        st.error(f"An error occurred while fetching intraday data: {e}")
+        return pd.DataFrame()
+
+# Fetch and display data when button is clicked
+if st.sidebar.button("Fetch Intraday Data"):
+    if ticker.strip() == "":
+        st.sidebar.error("Please enter a valid stock ticker symbol.")
+    else:
+        with st.spinner(f"Fetching intraday data for {ticker} with {interval} interval..."):
+            intraday_data = fetch_intraday_data(ticker, interval, start_date, end_date)
+        if not intraday_data.empty:
+            st.subheader(f"Intraday Data for {ticker} ({interval} Interval)")
+           
+            st.write("Full Dataset Overview:")
+            st.dataframe(intraday_data)  # Show all data if needed
+        else:
+            st.warning("No intraday data available to display.")

@@ -21,13 +21,13 @@ def run():
     if start_date > end_date:
         st.sidebar.error("Error: Start Date must be before or equal to End Date.")
 
-    # Set query parameters for bookmarking or sharing the current state
-    st.query_params.update({
-        "ticker": ticker,
-        "interval": interval,
-        "start_date": start_date.strftime("%Y-%m-%d"),
-        "end_date": end_date.strftime("%Y-%m-%d")
-    })
+    # Use st.set_query_params instead of directly updating st.query_params
+    st.set_query_params(
+        ticker=ticker,
+        interval=interval,
+        start_date=start_date.strftime("%Y-%m-%d"),
+        end_date=end_date.strftime("%Y-%m-%d")
+    )
 
     # Fetch intraday data function
     @st.cache_data
